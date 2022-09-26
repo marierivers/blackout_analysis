@@ -1,0 +1,14 @@
+{
+  "hash": "85c2063aca65b93e765b716f241eb3b6",
+  "result": {
+    "markdown": "---\ntitle: \"test\"\neditor: visual\n---\n\nTest to try cropping data, then vusualizing it before creating the difference mask\n\n::: {.cell}\n\n```{.r .cell-code}\nlibrary(tidyverse)\nlibrary(here)\nlibrary(stars)\nlibrary(sf)\n#library(tmap)\n#library(patchwork)\n```\n:::",
+    "supporting": [],
+    "filters": [
+      "rmarkdown/pagebreak.lua"
+    ],
+    "includes": [],
+    "engineDependencies": {},
+    "preserve": {},
+    "postProcess": null
+  }
+}
