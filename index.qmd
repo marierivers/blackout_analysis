@@ -33,12 +33,16 @@ add note here...xxx
 # Geospatial Analysis
 ```{r}
 #| warning: false
+
+# load libraries used in analysis
 library(tidyverse)
 library(here)
 library(stars)
 library(sf)
 library(leaflet)
 library(kableExtra)
+library(htmlwidgets)
+library(htmltools)
 ```
 
 ## Read in satellite imagery
@@ -271,16 +275,16 @@ blackout_no_highway_3083 <- st_difference(blackout_mask_roi_3083, highways_buffe
 ```
 
 ```{r}
-#| echo: false
+#| code-fold: true
+
 # transform to WG84 to be compatible with the leaflet package
 blackout_no_highway_4326 <- st_transform(blackout_no_highway_3083, crs = 4326)
 
 leaflet(blackout_no_highway_4326) %>%
+  setView(lat = 29.75, lng = -95.5, zoom = 9) %>%
   addProviderTiles(providers$OpenStreetMap) %>%
   addPolygons(color = "green")
 ```
-
-xxx...maybe include zoomed in map to show that road buffers were removed
 
 ```{r}
 #| include: false
@@ -291,7 +295,6 @@ gc()
 ## Building data
 
 The building data has previously been cropped to Houston metroplitan area.
-
 ```{r message=FALSE}
 #| column: page-right
 #| output: false
@@ -301,9 +304,11 @@ query_buildings <- "SELECT *
 FROM gis_osm_buildings_a_free_1
 WHERE (type IS NULL AND name IS NULL)
 OR type in ('residential', 'apartments', 'house', 'static_caravan', 'detached')"
-# read buildings gpkg into object
+
+# read buildings gpkg into object, and transform to correct projection
 buildings <- st_read("data/gis_osm_buildings_a_free_1.gpkg", query = query_buildings)
 buildings_3083 <- st_transform(buildings, crs = 3083)
+buildings_4326 <- st_transform(buildings, crs = 4326)
 ```
 
 
@@ -334,289 +339,287 @@ acs_layer_names_table
 ```
 :::
 
+**Geometry of each cencus tract**
 ```{r}
 #| column: page-right
 #| output: false
 
-# read in census data
-# acs_geoms <- st_read("data/ACS_2019_5YR_TRACT_48_TEXAS.gdb",
-#                      layer = "ACS_2019_5YR_TRACT_48_TEXAS") %>% 
-#   select(-(STATEFP:Shape_Area))
+# read in census data geometry
+acs_geoms <- st_read("data/ACS_2019_5YR_TRACT_48_TEXAS.gdb",
+                     layer = "ACS_2019_5YR_TRACT_48_TEXAS") %>%
+  select(-(STATEFP:Shape_Area))
 ```
 
+**Age and Sex Layer**
 ```{r}
 #| column: page-right
 #| code-overflow: wrap
 #| output: false
-# acs_age_sex <- st_read("data/ACS_2019_5YR_TRACT_48_TEXAS.gdb",
-#                       layer = "X01_AGE_AND_SEX")
-# acs_age_sex_df <- acs_age_sex %>% 
-#   select(GEOID) %>% 
-#   mutate(total_pop_from_age_sex = acs_age_sex$B01001e1,
-#          median_age = acs_age_sex$B01002e1,
-#          pop_male_65_66 = acs_age_sex$B01001e20,
-#          pop_male_67_to_69 = acs_age_sex$B01001e21,
-#          pop_male_70_to_74 = acs_age_sex$B01001e22,
-#          pop_male_75_to_79 = acs_age_sex$B01001e23,
-#          pop_male_80_to_84 = acs_age_sex$B01001e24,
-#          pop_male_85_and_over = acs_age_sex$B01001e25,
-#          pop_female_65_66 = acs_age_sex$B01001e44,
-#          pop_female_67_to_69 = acs_age_sex$B01001e45,
-#          pop_female_70_to_74 = acs_age_sex$B01001e46,
-#          pop_female_75_to_79 = acs_age_sex$B01001e47,
-#          pop_female_80_to_84 = acs_age_sex$B01001e48,
-#          pop_female_85_and_over = acs_age_sex$B01001e49,
-#          pop_65_and_over = pop_male_65_66 + pop_male_67_to_69 + pop_male_70_to_74 + pop_male_75_to_79 + pop_male_80_to_84 + pop_male_85_and_over + pop_female_65_66 + pop_female_67_to_69 + pop_female_70_to_74 + pop_female_75_to_79 + pop_female_80_to_84 + pop_female_85_and_over,
-#          pct_65_and_over = (pop_65_and_over / total_pop_from_age_sex) * 100) %>% 
-#   select(GEOID, total_pop_from_age_sex, pop_65_and_over, pct_65_and_over)
-# 
-# acs_race <- st_read("data/ACS_2019_5YR_TRACT_48_TEXAS.gdb",
-#                       layer = "X02_RACE")
-# acs_race_df <- acs_race %>% 
-#   select(GEOID) %>% 
-#   mutate(total_pop_from_race = acs_race$B02001e1,
-#          pop_white = acs_race$B02001e2,
-#          pct_white = (pop_white / total_pop_from_race) * 100,
-#          pop_black = acs_race$B02001e3,
-#          pct_black = (pop_black / total_pop_from_race) * 100,
-#          pop_am_native = acs_race$B02001e4,
-#          pct_am_native = (pop_am_native / total_pop_from_race) * 100,
-#          pop_asian = acs_race$B02001e5,
-#          pct_asian = (pop_asian / total_pop_from_race) * 100)
 
-    
-# acs_hispanic_latino <- st_read("data/ACS_2019_5YR_TRACT_48_TEXAS.gdb",
-#                       layer = "X03_HISPANIC_OR_LATINO_ORIGIN")
-# acs_hispanic_latino_df <- acs_hispanic_latino %>% 
-#   select(GEOID) %>% 
-#   mutate(total_pop_from_hispanic = acs_hispanic_latino$B03002e1,
-#          pop_hispanic_latino = acs_hispanic_latino$B03002e12,
-#          pct_hispanic_latino = (pop_hispanic_latino / total_pop_from_hispanic) * 100)
-# 
-# acs_children_household <- st_read("data/ACS_2019_5YR_TRACT_48_TEXAS.gdb",
-#                       layer = "X09_CHILDREN_HOUSEHOLD_RELATIONSHIP")
-# acs_children_household_df <- acs_children_household %>% 
-#   select(GEOID) %>% 
-#   mutate(pop_children_under_18 = acs_children_household$B09002e1)
-# 
-# acs_poverty <- st_read("data/ACS_2019_5YR_TRACT_48_TEXAS.gdb",
-#                        layer = "X17_POVERTY")
-# acs_poverty_df <- acs_poverty %>% 
-#   select(GEOID) %>% 
-#   mutate(total_households = acs_poverty$B17017e1,
-#          num_households_below_poverty = acs_poverty$B17017e2,
-#          pct_households_below_poverty = (num_households_below_poverty / total_households) * 100)
-# 
-# 
-# acs_income <- st_read("data/ACS_2019_5YR_TRACT_48_TEXAS.gdb",
-#                       layer = "X19_INCOME")
-# 
-# acs_income_df <- acs_income %>% 
-#   select(GEOID) %>% 
-#   mutate(median_income = acs_income$B19013e1,
-#          per_capita_income = acs_income$B19301e1)
-# 
-# acs_housing_characteristics <- st_read("data/ACS_2019_5YR_TRACT_48_TEXAS.gdb",
-#                        layer = "X25_HOUSING_CHARACTERISTICS")
+# read in variables of interest
+acs_age_sex <- st_read("data/ACS_2019_5YR_TRACT_48_TEXAS.gdb",
+                      layer = "X01_AGE_AND_SEX")
+acs_age_sex_df <- acs_age_sex %>%
+  select(GEOID) %>%
+  mutate(total_pop_from_age_sex = acs_age_sex$B01001e1,
+         median_age = acs_age_sex$B01002e1,
+         pop_male_65_66 = acs_age_sex$B01001e20,
+         pop_male_67_to_69 = acs_age_sex$B01001e21,
+         pop_male_70_to_74 = acs_age_sex$B01001e22,
+         pop_male_75_to_79 = acs_age_sex$B01001e23,
+         pop_male_80_to_84 = acs_age_sex$B01001e24,
+         pop_male_85_and_over = acs_age_sex$B01001e25,
+         pop_female_65_66 = acs_age_sex$B01001e44,
+         pop_female_67_to_69 = acs_age_sex$B01001e45,
+         pop_female_70_to_74 = acs_age_sex$B01001e46,
+         pop_female_75_to_79 = acs_age_sex$B01001e47,
+         pop_female_80_to_84 = acs_age_sex$B01001e48,
+         pop_female_85_and_over = acs_age_sex$B01001e49,
+         pop_65_and_over = pop_male_65_66 + pop_male_67_to_69 + pop_male_70_to_74 + pop_male_75_to_79 + pop_male_80_to_84 + pop_male_85_and_over + pop_female_65_66 + pop_female_67_to_69 + pop_female_70_to_74 + pop_female_75_to_79 + pop_female_80_to_84 + pop_female_85_and_over,
+         pct_65_and_over = (pop_65_and_over / total_pop_from_age_sex) * 100) %>%
+  select(GEOID, total_pop_from_age_sex, pop_65_and_over, pct_65_and_over)
+```
 
-# acs_housing_characteristics_df <- acs_housing_characteristics %>% 
-#   select(GEOID) %>% 
-#   mutate(num_housing_units = acs_housing_characteristics$B25001e1,
-#          median_year_house_built = acs_housing_characteristics$B25035e1,
-#          median_year_house_built = na_if(median_year_house_built, 0),
-#          num_houses_heated_by_utility_gas = acs_housing_characteristics$B25040e2,
-#          num_houses_heated_by_tank_lp_gas = acs_housing_characteristics$B25040e3,
-#          num_houses_heated_by_electricity = acs_housing_characteristics$B25040e4,
-#          num_houses_heated_by_fuel_oil_kerosene = acs_housing_characteristics$B25040e5,
-#          num_houses_heated_by_coal_coke = acs_housing_characteristics$B25040e6,
-#          num_houses_heated_by_wood = acs_housing_characteristics$B25040e7,
-#          num_houses_heated_by_solar = acs_housing_characteristics$B25040e8,
-#          num_houses_heated_by_other_fuel = acs_housing_characteristics$B25040e9,
-#          num_houses_heated_by_no_fuel = acs_housing_characteristics$B25040e10,
-#          num_houses_not_heated_by_electricity = (num_houses_heated_by_utility_gas + num_houses_heated_by_tank_lp_gas + num_houses_heated_by_fuel_oil_kerosene + num_houses_heated_by_coal_coke + num_houses_heated_by_wood + num_houses_heated_by_solar + num_houses_heated_by_other_fuel + num_houses_heated_by_no_fuel),
-#          pct_houses_not_heated_by_electricity = (num_houses_not_heated_by_electricity / num_housing_units) * 100,
-#          pct_houses_heated_by_electricity = (num_houses_heated_by_electricity / num_housing_units) * 100,
-#          num_houses_owner_occupied_no_vehicle_available = acs_housing_characteristics$B25044e3,
-#          num_houses_renter_occupied_no_vehicle_available = acs_housing_characteristics$B25044e10,
-#          num_houses_no_vehicle_available = (num_houses_owner_occupied_no_vehicle_available + num_houses_renter_occupied_no_vehicle_available),
-#          pct_houses_no_vehicle_available = (num_houses_no_vehicle_available / num_housing_units) * 100) %>% 
-#   select(GEOID, num_housing_units, median_year_house_built, num_houses_heated_by_electricity, num_houses_not_heated_by_electricity, pct_houses_not_heated_by_electricity, pct_houses_heated_by_electricity, num_houses_no_vehicle_available, pct_houses_no_vehicle_available)
+**Race Layer**
+```{r}
+acs_race <- st_read("data/ACS_2019_5YR_TRACT_48_TEXAS.gdb",
+                      layer = "X02_RACE")
+acs_race_df <- acs_race %>%
+  select(GEOID) %>%
+  mutate(total_pop_from_race = acs_race$B02001e1,
+         pop_white = acs_race$B02001e2,
+         pct_white = (pop_white / total_pop_from_race) * 100,
+         pop_black = acs_race$B02001e3,
+         pct_black = (pop_black / total_pop_from_race) * 100,
+         pop_am_native = acs_race$B02001e4,
+         pct_am_native = (pop_am_native / total_pop_from_race) * 100,
+         pop_asian = acs_race$B02001e5,
+         pct_asian = (pop_asian / total_pop_from_race) * 100)
+```
+
+**Hispanic Latino Layer**
+```{r}
+acs_hispanic_latino <- st_read("data/ACS_2019_5YR_TRACT_48_TEXAS.gdb",
+                      layer = "X03_HISPANIC_OR_LATINO_ORIGIN")
+acs_hispanic_latino_df <- acs_hispanic_latino %>%
+  select(GEOID) %>%
+  mutate(total_pop_from_hispanic = acs_hispanic_latino$B03002e1,
+         pop_hispanic_latino = acs_hispanic_latino$B03002e12,
+         pct_hispanic_latino = (pop_hispanic_latino / total_pop_from_hispanic) * 100)
+
+acs_children_household <- st_read("data/ACS_2019_5YR_TRACT_48_TEXAS.gdb",
+                      layer = "X09_CHILDREN_HOUSEHOLD_RELATIONSHIP")
+acs_children_household_df <- acs_children_household %>%
+  select(GEOID) %>%
+  mutate(pop_children_under_18 = acs_children_household$B09002e1)
+```
+
+**Poverty Layer**
+```{r}
+acs_poverty <- st_read("data/ACS_2019_5YR_TRACT_48_TEXAS.gdb",
+                       layer = "X17_POVERTY")
+acs_poverty_df <- acs_poverty %>%
+  select(GEOID) %>%
+  mutate(total_households = acs_poverty$B17017e1,
+         num_households_below_poverty = acs_poverty$B17017e2,
+         pct_households_below_poverty = (num_households_below_poverty / total_households) * 100)
+```
+
+**Income Layer**
+```{r}
+acs_income <- st_read("data/ACS_2019_5YR_TRACT_48_TEXAS.gdb",
+                      layer = "X19_INCOME")
+
+acs_income_df <- acs_income %>%
+  select(GEOID) %>%
+  mutate(median_income = acs_income$B19013e1,
+         per_capita_income = acs_income$B19301e1)
+```
+
+**Housing Characteristics Layer**
+```{r}
+acs_housing_characteristics <- st_read("data/ACS_2019_5YR_TRACT_48_TEXAS.gdb",
+                       layer = "X25_HOUSING_CHARACTERISTICS")
+
+acs_housing_characteristics_df <- acs_housing_characteristics %>%
+  select(GEOID) %>%
+  mutate(num_housing_units = acs_housing_characteristics$B25001e1,
+         median_year_house_built = acs_housing_characteristics$B25035e1,
+         median_year_house_built = na_if(median_year_house_built, 0),
+         num_houses_heated_by_utility_gas = acs_housing_characteristics$B25040e2,
+         num_houses_heated_by_tank_lp_gas = acs_housing_characteristics$B25040e3,
+         num_houses_heated_by_electricity = acs_housing_characteristics$B25040e4,
+         num_houses_heated_by_fuel_oil_kerosene = acs_housing_characteristics$B25040e5,
+         num_houses_heated_by_coal_coke = acs_housing_characteristics$B25040e6,
+         num_houses_heated_by_wood = acs_housing_characteristics$B25040e7,
+         num_houses_heated_by_solar = acs_housing_characteristics$B25040e8,
+         num_houses_heated_by_other_fuel = acs_housing_characteristics$B25040e9,
+         num_houses_heated_by_no_fuel = acs_housing_characteristics$B25040e10,
+         num_houses_not_heated_by_electricity = (num_houses_heated_by_utility_gas + num_houses_heated_by_tank_lp_gas + num_houses_heated_by_fuel_oil_kerosene + num_houses_heated_by_coal_coke + num_houses_heated_by_wood + num_houses_heated_by_solar + num_houses_heated_by_other_fuel + num_houses_heated_by_no_fuel),
+         pct_houses_not_heated_by_electricity = (num_houses_not_heated_by_electricity / num_housing_units) * 100,
+         pct_houses_heated_by_electricity = (num_houses_heated_by_electricity / num_housing_units) * 100,
+         num_houses_owner_occupied_no_vehicle_available = acs_housing_characteristics$B25044e3,
+         num_houses_renter_occupied_no_vehicle_available = acs_housing_characteristics$B25044e10,
+         num_houses_no_vehicle_available = (num_houses_owner_occupied_no_vehicle_available + num_houses_renter_occupied_no_vehicle_available),
+         pct_houses_no_vehicle_available = (num_houses_no_vehicle_available / num_housing_units) * 100) %>%
+  select(GEOID, num_housing_units, median_year_house_built, num_houses_heated_by_electricity, num_houses_not_heated_by_electricity, pct_houses_not_heated_by_electricity, pct_houses_heated_by_electricity, num_houses_no_vehicle_available, pct_houses_no_vehicle_available)
 # xxx...if you have gas heat and lose electricitym do you still have heat?
 ```
 xxx...normalize these stats by the total population in the tract
 
+Merge income data to census track data
+```{r}
+census_tract_data <- acs_geoms %>%
+  left_join(acs_age_sex_df, by = c("GEOID_Data" = "GEOID")) %>%
+  left_join(acs_race_df, by = c("GEOID_Data" = "GEOID")) %>%
+  left_join(acs_hispanic_latino_df, by = c("GEOID_Data" = "GEOID")) %>%
+  left_join(acs_children_household_df, by = c("GEOID_Data" = "GEOID")) %>%
+  left_join(acs_poverty_df, by = c("GEOID_Data" = "GEOID")) %>%
+  left_join(acs_income_df, by = c("GEOID_Data" = "GEOID")) %>%
+  left_join(acs_housing_characteristics_df, by = c("GEOID_Data" = "GEOID")) %>%
+  rename(total_population = total_pop_from_age_sex) %>%
+  select(-c(total_pop_from_race, total_pop_from_hispanic))
+```
 
 ```{r warning=FALSE, message=FALSE}
 #| include: false
 #remove acs_income from memory
-# rm(acs_age_sex, acs_race, acs_hispanic_latino, acs_children_household, acs_poverty, acs_income, acs_housing_characteristics)
-# gc()
-```
-
-Merge income data to census track data
-```{r}
-# census_tract_data <- acs_geoms %>% 
-#   left_join(acs_age_sex_df, by = c("GEOID_Data" = "GEOID")) %>% 
-#   left_join(acs_race_df, by = c("GEOID_Data" = "GEOID")) %>% 
-#   left_join(acs_hispanic_latino_df, by = c("GEOID_Data" = "GEOID")) %>% 
-#   left_join(acs_children_household_df, by = c("GEOID_Data" = "GEOID")) %>% 
-#   left_join(acs_poverty_df, by = c("GEOID_Data" = "GEOID")) %>% 
-#   left_join(acs_income_df, by = c("GEOID_Data" = "GEOID")) %>% 
-#   left_join(acs_housing_characteristics_df, by = c("GEOID_Data" = "GEOID")) %>% 
-#   rename(total_population = total_pop_from_age_sex) %>% 
-#   select(-c(total_pop_from_race, total_pop_from_hispanic))
+rm(acs_age_sex, acs_age_sex_df, acs_race, acs_race_df, acs_hispanic_latino, acs_hispanic_latino_df, acs_children_household, acs_children_household_df, acs_poverty, acs_poverty_df, acs_income, acs_income_df, acs_housing_characteristics, acs_housing_characteristics_df)
+gc()
 ```
 
 ```{r}
-# census_tract_data_3083 <- st_transform(census_tract_data, 3083)
-# 
-# census_tract_data_4326 <- st_transform(census_tract_data_3083, crs = 4326)
-# census_tract_data_roi_4326 <- st_crop(census_tract_data_4326, roi_sfc)
-# census_tract_data_roi_3083 <- st_transform(census_tract_data_roi_4326, crs = 3083)
+census_tract_data_3083 <- st_transform(census_tract_data, 3083)
+census_tract_data_4326 <- st_transform(census_tract_data_3083, crs = 4326)
+
+census_tract_data_roi_4326 <- st_crop(census_tract_data_4326, roi_sfc)
+census_tract_data_roi_3083 <- st_transform(census_tract_data_roi_4326, crs = 3083)
 ```
 
 ```{r}
-#| eval: false
-#pal_pop <- colorNumeric("YlGn", domain = census_tract_data_4326$total_population)
-# pal_pop <- colorQuantile("Blues", census_tract_data_roi_4326$total_population, n = 5)
-# #pal_pop <- colorBin("Blues", bins = 5, domain = census_tract_data_roi_4326$total_population)
-# 
-# pop_colors <- unique(pal_pop(sort(census_tract_data_roi_4326$total_population)))
-# pop_labs <- quantile(census_tract_data_roi_4326$total_population, seq(0, 1, .2))
-# pop_labs <- paste(lag(pop_labs), pop_labs, sep = " - ")[-1]
-# 
-# leaflet(census_tract_data_roi_4326) %>% 
-#   addProviderTiles(providers$OpenStreetMap) %>% 
-#   addPolygons(fillOpacity = 0.75,
-#               color = ~pal_pop(total_population)) %>% 
-#   addLegend(colors = pop_colors, labels = pop_labs,
-#             title = "Total Population",
-#             "bottomright")
-
-# leaflet(census_tract_data_roi_4326) %>% 
-#   addProviderTiles(providers$OpenStreetMap) %>% 
-#   addPolygons(fillColor = ~pal_pop(total_population), fillOpacity = 0.75,
-#               color = "gray", weight = 0.75,
-#               label = ~paste("Total Population:", format(total_population, big.mark = ",")),
-#               highlight = highlightOptions(weight = 3, color = "red", bringToFront = TRUE)) %>% 
-#   addLegend(pal = pal_pop, values = ~total_population,
-#             title = "Total Population",
-#             "bottomright")
-```
-
-```{r}
-#| eval: false
-#pal_blackout <- colorNumeric(c("red"), 1, na.color = "transparent")
-
-#pal_pop <- colorNumeric("Blues", domain = census_tract_data_4326$total_population)
-#pal_pop <- colorQuantile("Blues", census_tract_data_roi_4326$total_population, n = 5)
+#| code-fold: true
+# pal_pop <- colorNumeric("YlGn", domain = census_tract_data_4326$total_population)
+pal_pop <- colorQuantile("Blues", census_tract_data_roi_4326$total_population, n = 5)
 # pal_pop <- colorBin("Blues", bins = 5, domain = census_tract_data_roi_4326$total_population)
-# library(htmlwidgets)
-# library(htmltools)
-# tag.map.title <- tags$style(HTML("
-#   .leaflet-control.map-title { 
-#     transform: translate(-50%,20%);
-#     position: fixed !important;
-#     left: 50%;
-#     text-align: center;
-#     padding-left: 10px; 
-#     padding-right: 10px; 
-#     background: rgba(255,255,255,0.75);
-#     color: black;
-#     font-weight: bold;
-#     font-size: 16px;
-#   }
-# "))
-# 
-# title <- tags$div(
-#   tag.map.title, HTML("Census Tract Population and Blackout Areas")
-# )  
-# 
-# leaflet(census_tract_data_roi_4326) %>%
-#   addProviderTiles(providers$OpenStreetMap) %>%
-#   setView(lat = 29.75, lng = -95.5, zoom = 9) %>% 
-#   addPolygons(fillColor = ~pal_pop(total_population), fillOpacity = 0.75,
-#               color = "gray", weight = 0.75,
-#               label = ~paste("Total Population:", format(total_population, big.mark = ",")),
-#               highlight = highlightOptions(weight = 3, color = "red", bringToFront = TRUE),
-#               group = "group_1") %>%
-#   addLegend(pal = pal_pop, values = ~total_population,
-#             title = "Total Population", position = "bottomright",
-#             group = "group_1") %>% 
-#   addPolygons(data = blackout_no_highway_4326, fillColor = ~pal_blackout(DNB_At_Sensor_Radiance_500m), fillOpacity = 1, weight = 0,
-#               group = "group_2") %>% 
-#   # addLegend(pal = pal_blackout, values = ~blackout_no_highway_4326$DNB_At_Sensor_Radiance_500m, 
-#   #           title = "Blackout Areas", position = "bottomleft",
-#   #           group = "group_2") %>% 
-#   addControl(title, position = "topleft", className="map-title")
+
+pop_colors <- unique(pal_pop(sort(census_tract_data_roi_4326$total_population)))
+pop_labs <- format(quantile(census_tract_data_roi_4326$total_population, seq(0, 1, .2)), big.mark = ",", digits = 0)
+pop_labs <- paste(lag(pop_labs), pop_labs, sep = " - ")[-1]
+
+leaflet(census_tract_data_roi_4326) %>%
+  setView(lat = 29.75, lng = -95.5, zoom = 9) %>%
+  addProviderTiles(providers$OpenStreetMap) %>%
+  addPolygons(fillColor = ~pal_pop(total_population), fillOpacity = 0.75,
+              color = "gray", weight = 0.75,
+              label = ~paste("Total Population:", format(total_population, big.mark = ",")),
+              highlight = highlightOptions(weight = 3, color = "red", bringToFront = TRUE)) %>%
+  addLegend(colors = pop_colors, labels = pop_labs,
+            title = "Total Population",
+            "bottomright")
 ```
 
 ```{r}
-#buildings_4326 <- st_transform(buildings, crs = 4326)
-```
+#| code-fold: true
+pal_blackout <- colorNumeric(c("red"), 1, na.color = "transparent")
 
-```{r}
-#| eval: false
-#| include: false
-# ggplot(census_tract_data_roi_4326,
-#        aes(total_population)) +
-#   geom_histogram()
+#pal_pop <- colorQuantile("Blues", census_tract_data_roi_4326$total_population, n = 5)
+pal_pop <- colorBin("Blues", bins = 5, domain = census_tract_data_roi_4326$total_population)
+
+tag.map.title <- tags$style(HTML("
+  .leaflet-control.map-title {
+    transform: translate(-50%,20%);
+    position: fixed !important;
+    left: 50%;
+    text-align: center;
+    padding-left: 10px;
+    padding-right: 10px;
+    background: rgba(255,255,255,0.75);
+    color: black;
+    font-weight: bold;
+    font-size: 16px;
+  }
+"))
+
+title <- tags$div(
+  tag.map.title, HTML("Census Tract Population and Blackout Areas")
+)
+
+leaflet(census_tract_data_roi_4326) %>%
+  addProviderTiles(providers$OpenStreetMap) %>%
+  setView(lat = 29.75, lng = -95.5, zoom = 9) %>%
+  addPolygons(fillColor = ~pal_pop(total_population), fillOpacity = 0.75,
+              color = "gray", weight = 0.75,
+              label = ~paste("Total Population:", format(total_population, big.mark = ",")),
+              highlight = highlightOptions(weight = 3, color = "red", bringToFront = TRUE),
+              group = "group_1") %>%
+  addLegend(pal = pal_pop, values = ~total_population,
+            title = "Total Population", position = "bottomright",
+            group = "group_1") %>%
+  addPolygons(data = blackout_no_highway_4326, fillColor = ~pal_blackout(DNB_At_Sensor_Radiance_500m), fillOpacity = 1, weight = 0,
+              group = "group_2") %>%
+  # addLegend(pal = pal_blackout, values = ~blackout_no_highway_4326$DNB_At_Sensor_Radiance_500m,
+  #           title = "Blackout Areas", position = "bottomleft",
+  #           group = "group_2") %>%
+  addControl(title, position = "topleft", className="map-title")
 ```
 
 ```{r warning=FALSE}
-#use spatial subsetting to find all the residential buildings in blackout areas (like we did to crop data to our roi)
+# use spatial subsetting to find all the residential buildings in blackout areas (like we did to crop data to our roi)
 
-# blackout_buildings_3083 <- buildings_3083[blackout_no_highway_3083, op = st_intersects]
-# blackout_buildings_4326 <- st_transform(blackout_buildings_3083, crs = 4326)
-# # residential houses that did not lose power
-# no_blackout_buildings_3083 <- setdiff(buildings_3083, blackout_buildings_3083)
-# no_blackout_buildings_4326 <- st_transform(no_blackout_buildings_3083, crs = 4326)
+blackout_buildings_3083 <- buildings_3083[blackout_no_highway_3083, op = st_intersects]
+blackout_buildings_4326 <- st_transform(blackout_buildings_3083, crs = 4326)
+
+# residential houses that did not lose power
+no_blackout_buildings_3083 <- setdiff(buildings_3083, blackout_buildings_3083)
+no_blackout_buildings_4326 <- st_transform(no_blackout_buildings_3083, crs = 4326)
 ```
 
 ```{r}
-# blackout_buildings_census_3083 <- st_join(blackout_buildings_3083, census_tract_data_3083) %>% 
-#   mutate(blackout_status = "lost power")
-# 
-# 
-# no_blackout_buildings_census_3083 <- st_join(no_blackout_buildings_3083, census_tract_data_3083) %>% 
-#   mutate(blackout_status = "did not lose power")
+# use a spatial join to attach the census tract data to the building data
+blackout_buildings_census_3083 <- st_join(blackout_buildings_3083, census_tract_data_3083) %>%
+  mutate(blackout_status = "lost power")
+
+no_blackout_buildings_census_3083 <- st_join(no_blackout_buildings_3083, census_tract_data_3083) %>%
+  mutate(blackout_status = "did not lose power")
 ```
 
 ```{r}
-#| eval: false
-# leaflet(blackout_buildings_4326) %>% 
-#   addProviderTiles(providers$OpenStreetMap) %>% 
-#   addPolygons(label = ~paste("Building Type:", type),
-#               highlight = highlightOptions(weight = 2, color = "black", bringToFront = TRUE))
+#| code-fold: true
+leaflet(blackout_buildings_4326) %>%
+  setView(lat = 29.75, lng = -95.5, zoom = 9) %>%
+  addProviderTiles(providers$OpenStreetMap) %>%
+  addPolygons(label = ~paste("Building Type:", type),
+              highlight = highlightOptions(weight = 2, color = "black", bringToFront = TRUE))
 ```
 
 ```{r}
-#numberofbuildings_without_power <- nrow(blackout_buildings_3083)
+numberofbuildings_without_power <- nrow(blackout_buildings_3083)
 ```
 
 ```{r}
-#all_building_data_3083 <- rbind(blackout_buildings_census_3083, no_blackout_buildings_census_3083)
+all_building_data_3083 <- rbind(blackout_buildings_census_3083, no_blackout_buildings_census_3083)
 ```
 
 ```{r}
-# counts_of_lost_power_by_census_tract <- all_building_data_3083 %>% 
-#   st_drop_geometry() %>% 
-#   group_by(GEOID_Data, blackout_status) %>%
-#   summarise(count = n()) %>% 
-#   pivot_wider(names_from = blackout_status, values_from = count, values_fill = 0) %>% 
-#   rename(num_houses_did_not_lose_power = "did not lose power",
-#          num_houses_lost_power = "lost power") %>% 
-#   mutate(pct_house_that_lost_power = (num_houses_lost_power / (num_houses_did_not_lose_power + num_houses_lost_power)) * 100)
+counts_of_lost_power_by_census_tract <- all_building_data_3083 %>%
+  st_drop_geometry() %>%
+  group_by(GEOID_Data, blackout_status) %>%
+  summarise(count = n()) %>%
+  pivot_wider(names_from = blackout_status, values_from = count, values_fill = 0) %>%
+  rename(num_houses_did_not_lose_power = "did not lose power",
+         num_houses_lost_power = "lost power") %>%
+  mutate(pct_house_that_lost_power = (num_houses_lost_power / (num_houses_did_not_lose_power + num_houses_lost_power)) * 100)
 ```
 
 ```{r}
-#head(counts_of_lost_power_by_census_tract)
+census_tract_blackout_data <- left_join(census_tract_data_roi_4326, counts_of_lost_power_by_census_tract, by = "GEOID_Data")
 ```
 
 ```{r}
-#census_tract_blackout_data <- left_join(census_tract_data_roi_4326, counts_of_lost_power_by_census_tract, by = "GEOID_Data")
+# remove spatial info and export to .csv file for use in statistical analysis
+census_tract_blackout_data_df <- st_drop_geometry(census_tract_blackout_data) %>% 
+  write_csv("data/census_tract_blackout_data_df.csv")
 ```
-
 
 
 # Statistical Analysis
