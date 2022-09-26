@@ -317,6 +317,7 @@ xxx...note the year of the data and update if needed
 The ACS data consists of the layers listed below, with each layer containing subsets of data as documented in the [ACS Metadata](https://www2.census.gov/geo/docs/maps-data/data/tiger/prejoined/ACSMetadata2011.txt).
 
 ```{r}
+#| column: page-right
 #| echo: false
 acs_layer_names <- st_layers("data/ACS_2019_5YR_TRACT_48_TEXAS.gdb")
 acs_layer_names <- acs_layer_names[1]
