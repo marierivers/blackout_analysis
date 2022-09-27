@@ -9,7 +9,8 @@ website:
     left:
       - href: index.qmd
         text: "Geospatial Analysis"
-      - about.qmd
+      - href: stats.qmd
+        text: "Statistical Analysis"
 
 format:
   html:
