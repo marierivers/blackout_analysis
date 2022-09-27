@@ -8,9 +8,16 @@ website:
     background: primary
     left:
       - href: index.qmd
+        text: "About"
+      - href: geospatial.qmd
         text: "Geospatial Analysis"
       - href: stats.qmd
         text: "Statistical Analysis"
+    right:
+      - icon: github
+        href: https://github.com/marierivers/blackout_analysis
+        aria-label: GitHub
+    page-footer: "website created with [Quarto](https://quarto.org/) by RStudio"
 
 format:
   html:

@@ -1,0 +1,52 @@
+---
+title: "Maps"
+editor: visual
+toc-title: Contents
+toc-location: left
+toc-depth: 2
+code-tools: 
+  source: true
+  toggle: true
+  caption: view source code
+code-block-bg: true
+code-block-border-left: "#31BAE9"
+---
+
+# Population 
+
+```{r}
+#| code-fold: true
+# leaflet(blackout_buildings_4326) %>%
+#   setView(lat = 29.75, lng = -95.5, zoom = 9) %>%
+#   addProviderTiles(providers$OpenStreetMap) %>%
+#   addPolygons(label = ~paste("Building Type:", type),
+#               highlight = highlightOptions(weight = 2, color = "black", bringToFront = TRUE))
+```
+
+# pal_pop <- colorBin("Blues", bins = 5, domain = census_tract_data_roi_4326$total_population)
+# pal_pop <- colorNumeric("YlGn", domain = census_tract_data_4326$total_population)
+
+```{r}
+#| code-fold: true
+#pal_blackout <- colorNumeric(c("red"), 1, na.color = "transparent")
+
+#pal_pop <- colorQuantile("Blues", census_tract_data_roi_4326$total_population, n = 5)
+# pal_pop <- colorBin("Blues", bins = 5, domain = census_tract_data_roi_4326$total_population)
+# 
+# leaflet(census_tract_data_roi_4326) %>%
+#   addProviderTiles(providers$OpenStreetMap) %>%
+#   setView(lat = 29.75, lng = -95.5, zoom = 9) %>%
+#   addPolygons(fillColor = ~pal_pop(total_population), fillOpacity = 0.75,
+#               color = "gray", weight = 0.75,
+#               label = ~paste("Total Population:", format(total_population, big.mark = ",")),
+#               highlight = highlightOptions(weight = 3, color = "red", bringToFront = TRUE),
+#               group = "group_1") %>%
+#   addLegend(pal = pal_pop, values = ~total_population,
+#             title = "Total Population", position = "bottomright",
+#             group = "group_1") %>%
+#   addPolygons(data = blackout_no_highway_4326, fillColor = ~pal_blackout(DNB_At_Sensor_Radiance_500m), fillOpacity = 1, weight = 0,
+#               group = "group_2")
+  # addLegend(pal = pal_blackout, values = ~blackout_no_highway_4326$DNB_At_Sensor_Radiance_500m,
+  #           title = "Blackout Areas", position = "bottomleft",
+  #           group = "group_2") %>%
+```
