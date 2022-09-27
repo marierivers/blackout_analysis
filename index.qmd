@@ -3,6 +3,7 @@ title: "Blackout Analysis"
 editor: visual
 toc-title: Contents
 toc-location: left
+toc-depth: 2
 code-tools: 
   source: true
   toggle: true
@@ -195,7 +196,7 @@ dnb_feb16_crop <- st_crop(dnb_feb16, roi_sfc)
 :::: {.columns}
 ::: {.column width="50%"}
 
-**Before the storms**
+#### Before the storms
 
 ```{r}
 #| message: false
@@ -207,7 +208,7 @@ plot(dnb_feb7_crop, main = "DNB at Sensor Radiance Feb 7, 2021", axes = TRUE, ke
 :::
 ::: {.column width="50%"}
 
-**After the storms**
+#### After the storms
 
 ```{r}
 #| message: false
@@ -339,7 +340,7 @@ acs_layer_names_table
 ```
 :::
 
-**Geometry of each census tract**
+### Geometry of each census tract
 
 ```{r}
 #| column: page-right
@@ -351,7 +352,7 @@ acs_geoms <- st_read("data/ACS_2019_5YR_TRACT_48_TEXAS.gdb",
   select(-(STATEFP:Shape_Area))
 ```
 
-**Age and Sex Layer**
+### Age and Sex Layer
 
 ```{r}
 #| column: page-right
@@ -382,7 +383,7 @@ acs_age_sex_df <- acs_age_sex %>%
   select(GEOID, total_pop_from_age_sex, pop_65_and_over, pct_65_and_over)
 ```
 
-**Race Layer**
+### Race Layer
 
 ```{r}
 acs_race <- st_read("data/ACS_2019_5YR_TRACT_48_TEXAS.gdb",
@@ -400,7 +401,7 @@ acs_race_df <- acs_race %>%
          pct_asian = (pop_asian / total_pop_from_race) * 100)
 ```
 
-**Hispanic Latino Layer**
+### Hispanic Latino Layer
 
 ```{r}
 acs_hispanic_latino <- st_read("data/ACS_2019_5YR_TRACT_48_TEXAS.gdb",
@@ -419,7 +420,7 @@ acs_children_household_df <- acs_children_household %>%
          pct_children_under_18 = (pop_children_under_18 / acs_hispanic_latino$B03002e1) * 100)
 ```
 
-**Poverty Layer**
+### Poverty Layer
 
 ```{r}
 acs_poverty <- st_read("data/ACS_2019_5YR_TRACT_48_TEXAS.gdb",
@@ -431,7 +432,7 @@ acs_poverty_df <- acs_poverty %>%
          pct_households_below_poverty = (num_households_below_poverty / total_households) * 100)
 ```
 
-**Income Layer**
+### Income Layer
 
 ```{r}
 acs_income <- st_read("data/ACS_2019_5YR_TRACT_48_TEXAS.gdb",
@@ -439,41 +440,11 @@ acs_income <- st_read("data/ACS_2019_5YR_TRACT_48_TEXAS.gdb",
 
 acs_income_df <- acs_income %>%
   select(GEOID) %>%
-  mutate(median_income = acs_income$B19013e1,
-         per_capita_income = acs_income$B19301e1)
+  mutate(median_income = acs_income$B19013e1)
 ```
 
-**Housing Characteristics Layer**
+### Housing Characteristics Layer
 
-```{r}
-acs_housing_characteristics <- st_read("data/ACS_2019_5YR_TRACT_48_TEXAS.gdb",
-                       layer = "X25_HOUSING_CHARACTERISTICS")
-
-acs_housing_characteristics_df <- acs_housing_characteristics %>%
-  select(GEOID) %>%
-  mutate(num_housing_units = acs_housing_characteristics$B25001e1,
-         median_year_house_built = acs_housing_characteristics$B25035e1,
-         median_year_house_built = na_if(median_year_house_built, 0),
-         median_year_house_built = na_if(median_year_house_built, 18),
-         num_houses_heated_by_utility_gas = acs_housing_characteristics$B25040e2,
-         num_houses_heated_by_tank_lp_gas = acs_housing_characteristics$B25040e3,
-         num_houses_heated_by_electricity = acs_housing_characteristics$B25040e4,
-         num_houses_heated_by_fuel_oil_kerosene = acs_housing_characteristics$B25040e5,
-         num_houses_heated_by_coal_coke = acs_housing_characteristics$B25040e6,
-         num_houses_heated_by_wood = acs_housing_characteristics$B25040e7,
-         num_houses_heated_by_solar = acs_housing_characteristics$B25040e8,
-         num_houses_heated_by_other_fuel = acs_housing_characteristics$B25040e9,
-         num_houses_heated_by_no_fuel = acs_housing_characteristics$B25040e10,
-         num_houses_not_heated_by_electricity = (num_houses_heated_by_utility_gas + num_houses_heated_by_tank_lp_gas + num_houses_heated_by_fuel_oil_kerosene + num_houses_heated_by_coal_coke + num_houses_heated_by_wood + num_houses_heated_by_solar + num_houses_heated_by_other_fuel + num_houses_heated_by_no_fuel),
-         pct_houses_not_heated_by_electricity = (num_houses_not_heated_by_electricity / num_housing_units) * 100,
-         pct_houses_heated_by_electricity = (num_houses_heated_by_electricity / num_housing_units) * 100,
-         num_houses_owner_occupied_no_vehicle_available = acs_housing_characteristics$B25044e3,
-         num_houses_renter_occupied_no_vehicle_available = acs_housing_characteristics$B25044e10,
-         num_houses_no_vehicle_available = (num_houses_owner_occupied_no_vehicle_available + num_houses_renter_occupied_no_vehicle_available),
-         pct_houses_no_vehicle_available = (num_houses_no_vehicle_available / num_housing_units) * 100) %>%
-  select(GEOID, num_housing_units, median_year_house_built, num_houses_heated_by_electricity, num_houses_not_heated_by_electricity, pct_houses_not_heated_by_electricity, pct_houses_heated_by_electricity, num_houses_no_vehicle_available, pct_houses_no_vehicle_available)
-# xxx...if you have gas heat and lose electricitym do you still have heat?
-```
 xxx...normalize these stats by the total population in the tract
 
 Merge income data to census track data
@@ -485,7 +456,6 @@ census_tract_data <- acs_geoms %>%
   left_join(acs_children_household_df, by = c("GEOID_Data" = "GEOID")) %>%
   left_join(acs_poverty_df, by = c("GEOID_Data" = "GEOID")) %>%
   left_join(acs_income_df, by = c("GEOID_Data" = "GEOID")) %>%
-  left_join(acs_housing_characteristics_df, by = c("GEOID_Data" = "GEOID")) %>%
   rename(total_population = total_pop_from_age_sex) %>%
   select(-c(total_pop_from_race, total_pop_from_hispanic))
 ```
@@ -493,7 +463,7 @@ census_tract_data <- acs_geoms %>%
 ```{r warning=FALSE, message=FALSE}
 #| include: false
 #remove acs_income from memory
-rm(acs_age_sex, acs_age_sex_df, acs_race, acs_race_df, acs_hispanic_latino, acs_hispanic_latino_df, acs_children_household, acs_children_household_df, acs_poverty, acs_poverty_df, acs_income, acs_income_df, acs_housing_characteristics, acs_housing_characteristics_df)
+rm(acs_age_sex, acs_age_sex_df, acs_race, acs_race_df, acs_hispanic_latino, acs_hispanic_latino_df, acs_children_household, acs_children_household_df, acs_poverty, acs_poverty_df, acs_income, acs_income_df)
 gc()
 ```
 
@@ -602,8 +572,10 @@ leaflet(blackout_buildings_4326) %>%
 ```
 
 ```{r}
-numberofbuildings_without_power <- nrow(blackout_buildings_3083)
+number_of_buildings_without_power <- nrow(blackout_buildings_3083)
 ```
+
+Based on this analysis, an estiamted `r format(number_of_buildings_without_power, big.mark = ",")` houses lost power during the storms.
 
 ```{r}
 all_building_data_3083 <- rbind(blackout_buildings_census_3083, no_blackout_buildings_census_3083)
