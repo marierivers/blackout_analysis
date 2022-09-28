@@ -78,6 +78,6 @@ This analysis does not include any verification of power outage locations nor do
 
 [VIIRS Day/Night Band Sensor User Guide](https://viirsland.gsfc.nasa.gov/PDF/VIIRS_BlackMarble_UserGuide.pdf)
 
-Pebesma E (2022). stars: Spatiotemporal Arrays, Raster and Vector Data Cubes. [](https://r-spatial.github.io/stars/), [](https://github.com/r-spatial/stars/).
+Pebesma E (2022). stars: Spatiotemporal Arrays, Raster and Vector Data Cubes. https://r-spatial.github.io/stars/, https://github.com/r-spatial/stars/.
 
 [Extreme Winter Weather Causes U.S. Blackouts](https://earthobservatory.nasa.gov/images/147941/extreme-winter-weather-causes-us-blackouts)

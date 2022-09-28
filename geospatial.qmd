@@ -586,7 +586,7 @@ counts_of_lost_power_by_census_tract <- all_building_data_3083 %>%
 census_tract_blackout_data <- left_join(census_tract_data_roi_4326, counts_of_lost_power_by_census_tract, by = "GEOID_Data")
 ```
 
-The map below shows blackout areas layered over census tract populations, with labels identifying the number of houses in each census tract that lost power. The buildings layer was not visualized do the size of the dataset and slow load times. 
+The map below shows blackout areas layered over census tract populations, with labels identifying the number of houses in each census tract that lost power. The buildings layer was not visualized due to the size of the dataset and slow load times. 
 
 ```{r}
 #| column: page-right
