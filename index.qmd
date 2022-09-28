@@ -17,14 +17,14 @@ library(tidyverse)
 library(kableExtra)
 ```
 
-This analysis evaluates the spatial distribution of power outages in surrounding Houston, Texas caused by winter storms in February 2021 and explores which socioeconomic variables are most correlated with power outages. Code and outputs for the geospatial and statistical analyses can be view from the navigation bar at the top of this page.
+This analysis evaluates the spatial distribution of power outages in the area surrounding Houston, Texas caused by winter storms in February 2021 and explores which socioeconomic variables are most correlated with power outages. Code and outputs for the geospatial and statistical analyses can be view from the navigation bar at the top of this page.
 
 :::{.callout-note}
 This analysis started as an assignment for a [Spatial Analysis](https://jamesfrew.github.io/EDS_223_spatial_analysis/assignments/2/HW2.html) class I took as part of my [Masters of Environmental Data Science](https://ucsb-meds.github.io/) degree at UC Santa Barbara. Here, the original assignment is expanded upon to include additional socioeconomic variables, a statistical analysis, and interactive leaflet maps.
 :::
 
 # Background
-In 2021, large portions of the United States experience three major winter storms on February 10-11, February 13-17, and February 15-20. The electrical infrastructure in the state of Texas was particularly effected by these events. In the Houston area, an estimated 1.4 million customers were without power on February 15. Using satellite imagery and census data, this analysis quantifies the magnitude and socioeconomic variability of power outages surrounding Houston. Goals of the analysis include:
+In 2021, large portions of the United States experience three major winter storms on February 10-11, February 13-17, and February 15-20. The electrical infrastructure in the state of Texas was particularly affected by these events. In the Houston area, an estimated 1.4 million customers were without power on February 15. Using satellite imagery and census data, this analysis quantifies the magnitude and socioeconomic variability of power outages surrounding Houston. Goals of the analysis include:
 
 - estimate the number of homes without power
 - evaluate race, age, and income differences between areas with and without power
@@ -32,14 +32,9 @@ In 2021, large portions of the United States experience three major winter storm
 # Data
 ## Satellite imagery
 
-Nighttime light data was obtained from the Visible Infrared Imaging Radiometer Suite (VIIRS), located on the Suomi NPP satellite, which used a low-light sensor to measure light emissions and reflections.
+Nighttime light data was obtained from the Visible Infrared Imaging Radiometer Suite (VIIRS), located on the Suomi NPP satellite, which uses a low-light sensor to measure light emissions and reflections. Specifically, the daily at-sensor top of atmosphere (TOA) nighttime radiance (VNP46A1) product was used. This data is available at a 500 meter geographic linear latitude/longitude grid resolution. The processed data accounts for nighttime cloud masks, solar/viewing/lunar geometry values, aerosols, and snow cover. This analysis used the day/night band DNB_At_Sensor_Radiance_500m dataset within the VNP46A1 product.
 
-DNB_At_Sensor_Radiance_500m dataset
-DNB = Day Night Band
-
-explain file name
-
-Imagery from February 7 and February 16 were used to visualize pre and post storm conditions due to a lack of cloud cover. Imagery from two tiles was needed to cover the area of interest. This results in a total of four files used in the analysis.
+Imagery from February 7th and February 16th was used to visualize pre- and post-storm conditions due to a lack of cloud cover. Imagery from two tiles was needed to cover the area of interest, which resulted in a total of four files used in the analysis.
 
 - VNP46A1.A2021038.h08v05.001.2021039064328.h5
 - VNP46A1.A2021038.h08v06.001.2021039064329.h5
@@ -49,7 +44,7 @@ Imagery from February 7 and February 16 were used to visualize pre and post stor
 ```{r}
 #| echo: false
 tibble(component = c("VNP46A1", "A2021038", "h08", "v05", "2021039064328", "h5"),
-       meaning = c("name of data product", "year (ie. 2021) and day of year (ie. 038) that the imagery was acquired", "horizontal tile number 8", "vertical tile number 5", "year (2021), day of year (039), and time(06:43:28 UTC) that the file contents were generated", "file format (HDF-EOS5")) %>% 
+       meaning = c("name of data short product", "year (ie. 2021) and day of year (ie. 038) that the imagery was acquired", "horizontal tile number 8", "vertical tile number 5", "year (2021), day of year (039), and time (06:43:28 UTC) that the file contents were generated", "file extension: HDF-EOS5 (hierarchical data format - earth observing system)")) %>% 
   kable(col.names = c("file name part", "explanation"),
         caption = "File name convention") %>% 
   kable_paper()
@@ -76,17 +71,13 @@ Data pertaining to race, age, and income demographics for Texas census tract was
   - households below poverty level
   - median income
 
-
 ## Limitations
 This analysis does not include any verification of power outage locations nor does it incorporate typical variations in nighttime lights. The intent of the statistical analysis is not to use sociodemographic variables as predictors of power outages, but rather provide insight into groups that were disproportionately affected. Further work could incorporate electric utility data to identify vulnerable power grid infrastructure and then recommend equitable asset management and capital improvement plans.
 
-
 # References
 
-https://blackmarble.gsfc.nasa.gov/tools/OpenHDF5.py
+[VIIRS Day/Night Band Sensor User Guide](https://viirsland.gsfc.nasa.gov/PDF/VIIRS_BlackMarble_UserGuide.pdf)
 
-Pebesma E (2022). stars: Spatiotemporal Arrays, Raster and Vector Data Cubes. https://r-spatial.github.io/stars/, https://github.com/r-spatial/stars/.
+Pebesma E (2022). stars: Spatiotemporal Arrays, Raster and Vector Data Cubes. [](https://r-spatial.github.io/stars/), [](https://github.com/r-spatial/stars/).
 
-https://en.wikipedia.org/wiki/2021_Texas_power_crisis
-
-https://earthobservatory.nasa.gov/images/147941/extreme-winter-weather-causes-us-blackouts
+[Extreme Winter Weather Causes U.S. Blackouts](https://earthobservatory.nasa.gov/images/147941/extreme-winter-weather-causes-us-blackouts)

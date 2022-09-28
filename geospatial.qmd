@@ -28,7 +28,7 @@ library(htmltools)
 
 # Read in satellite imagery
 
-The function below takes an HDFEOS file as input and, from that file, reads the DNB_at_Sensor_Radiance_500m dataset into a using the [\`stars'](https://r-spatial.github.io/stars/) package. The function then reads the sinusoidal tile x/y positions, adjusts the dimensions, and sets the coordinate reference system.
+The function below takes an HDFEOS file as input and, from that file, reads the DNB_at_Sensor_Radiance_500m dataset using the [`stars`](https://r-spatial.github.io/stars/) package. The function then reads the sinusoidal tile x/y positions, adjusts the dimensions, and sets the coordinate reference system.
 
 ```{r}
 #| code-overflow: wrap
@@ -113,7 +113,7 @@ feb16_h08v06_file_name <- "data/VNP46A1/VNP46A1.A2021047.h08v06.001.202104809110
 dnb_feb16_h08v06 <- read_dnb_file(file_name = feb16_h08v06_file_name)
 ```
 
-Combine the data using `st_mosaic()`
+Combine the tiles from each day using `st_mosaic()`, like stitching together quit squares.
 
 ```{r}
 #| column: page-right
@@ -126,13 +126,18 @@ dnb_feb16 <- st_mosaic(dnb_feb16_h08v05, dnb_feb16_h08v06)
 
 ```{r}
 #| column: page-right
+
+# extract fill value from metadata
+fill_value_string <- gdal_metadata(feb7_h08v05_file_name)[38]
+fill_value <- as.integer(str_split(fill_value_string, "=", simplify = TRUE)[[2]])
+
 # convert fill value of 65535 to NA
-dnb_feb7[dnb_feb7 == 65535] = NA
-dnb_feb16[dnb_feb16 == 65535] = NA
+dnb_feb7[dnb_feb7 == fill_value] = NA
+dnb_feb16[dnb_feb16 == fill_value] = NA
 ```
 
 ::: callout-note
-At this point you may want to save memory by removing objects that wont be used in the rest of the analysis. Unfold the code below to see how to do this.
+At this point you may want to save computer memory by removing objects that wont be used in the rest of the analysis. Unfold the code below to see how to do this.
 
 ```{r}
 #| warning: false
@@ -147,18 +152,35 @@ gc()
 ```
 :::
 
-The code below defines a bounding box for the region of interest.
+The code below defines and visualizes a bounding box for the region of interest.
 
 ```{r}
 #| column: page-right
+#| code-overflow: wrap
 # set region on interest
 roi <- st_polygon(list(rbind(c(-96.5,29), c(-96.5,30.5), c(-94.5,30.5), c(-94.5,29), c(-96.5,29))))
 
 # set coordinate reference system
 roi_sfc <- st_sfc(roi, crs = 4326)
+# crs 4326 matches the crs of the satellite imagery
 ```
 
-Crop the data to the region of interest
+```{r}
+#| column: page-right
+#| code-overflow: wrap
+#| code-fold: true
+#| code-summary: "Code for leaflet map"
+roi_leaflet <- st_as_sf(roi_sfc)
+roi_leaflet <- st_make_valid(roi_leaflet)
+
+leaflet(roi_leaflet) %>%
+  setView(lat = 29.75, lng = -95.5, zoom = 8) %>%
+  addProviderTiles(providers$OpenStreetMap) %>% 
+  addPolygons(fillColor = "green", fillOpacity = 0.5, weight = 2)
+```
+
+
+The next step crops the night light imagery data to the region of interest
 
 ```{r}
 dnb_feb7_crop <- st_crop(dnb_feb7, roi_sfc)
@@ -193,7 +215,7 @@ plot(dnb_feb16_crop, main = "DNB at Sensor Radiance Feb 16, 2021", axes = TRUE, 
 
 # Create blackout mask
 
-A `stars` raster object representing the difference in night light intensity is created by subtracting the post-storm imagery from the pre-storm imagery. Next, a blackout mask is created to identify areas where night light intensity decreased by more than 200 nW cm-2 sr-1. For this analysis, differences in night light intensity is assumed to be caused by the storms. The blackout mask is then converted from a `stars` object to and `sf` simple features object for use in the rest of the analysis.
+A `stars` raster object representing the difference in night light intensity is created by subtracting the post-storm imagery from the pre-storm imagery. Next, a blackout mask is created to identify areas where night light intensity decreased by more than 200 nW cm-2 sr-1. For this analysis, differences in night light intensity are assumed to be caused by the power outages. The blackout mask is then converted from a `stars` object to a `sf` simple features object for use in the rest of the analysis.
 
 ```{r}
 night_light_difference <- dnb_feb7 - dnb_feb16
@@ -210,6 +232,7 @@ blackout_mask_sf_valid <- st_make_valid(blackout_mask_sf)
 Next, the blackout mask is cropped to the region of interest and transformed to the NAD83 / Texas Centric Albers Equal Area projection.
 
 ```{r}
+#| code-overflow: wrap
 blackout_mask_roi <- blackout_mask_sf_valid[roi_sfc, op = st_intersects]
 
 # transform blackout roi to Texas centric albers equal area
@@ -225,10 +248,11 @@ gc()
 
 # Road data
 
-Roadway data was obtained from OpenStreetMap. An SQL query and the `st_read` function were used to load and subset highways and major roads from the full dataset. Since vehicles can be a significant source of observable nighttime light, `st_buffer` was used to create a 200 meter highway buffer that was then removed from the blackout mask area. This step prevents areas that experienced reduced traffic from being identified as areas with power outages.
+Roadway data was obtained from OpenStreetMap. A SQL query and the `st_read` function were used to load and subset highways and major roads from the full dataset. Since vehicles can be a significant source of observable nighttime light, `st_buffer` was used to create a 200 meter highway buffer that was then removed from the blackout mask area. This step prevents areas that experienced reduced traffic from being identified as areas with power outages.
 
 ```{r message=FALSE}
 #| column: page-right
+#| code-overflow: wrap
 #| output: false
 
 # load in roads package and select specifically highways
@@ -243,13 +267,19 @@ highways_buffer_3083 <- st_buffer(highways_3083, dist = 200)
 highways_buffer_3083 <- st_union(highways_buffer_3083)
 ```
 
-```{r warning=FALSE}
+```{r}
+#| column: page-right
+#| code-overflow: wrap
+#| warning: false
 # remove the highway buffer from our vectorized blackout mask using st_difference()
 blackout_no_highway_3083 <- st_difference(blackout_mask_roi_3083, highways_buffer_3083)
 ```
 
 The map below shows the areas identified as still experiencing power outages as of February 16, 2021.
+
 ```{r}
+#| column: page-right
+#| code-overflow: wrap
 #| code-fold: true
 #| code-summary: "Code for leaflet map"
 
@@ -276,7 +306,7 @@ gc()
 
 # Building data
 
-The building data has previously been cropped to Houston metroplitan area. A subset of residential buildings is loaded with an SQL query and the `st_read` function. Close inspection of this data shows many NA values in the `type` field. When looking at the data on the map, most NA values appear to be residential buildings, but some non-residential buildings such as schools are included.
+The building data has previously been cropped to the Houston metroplitan area. A subset of residential buildings is loaded with an SQL query and the `st_read` function. Close inspection of this data shows many NA values in the `type` field. When looking at the data on the map, most NA values appear to be residential buildings, but some non-residential buildings such as schools are included.
 
 ```{r message=FALSE}
 #| column: page-right
@@ -297,6 +327,7 @@ buildings_4326 <- st_transform(buildings, crs = 4326)
 # Census data
 
 Socioeconomic data was obtained from the U.S. Census Bureau's 2019 [American Community Survey](https://www.census.gov/programs-surveys/acs). This data is aggregated to the census tract level and variables extracted from the full dataset include:
+
 - Race
   - white
   - black
@@ -378,6 +409,8 @@ acs_age_sex_df <- acs_age_sex %>%
 ## Race layer
 
 ```{r}
+#| column: page-right
+#| code-overflow: wrap
 #| output: false
 acs_race <- st_read("data/ACS_2019_5YR_TRACT_48_TEXAS.gdb",
                       layer = "X02_RACE")
@@ -397,6 +430,8 @@ acs_race_df <- acs_race %>%
 ## Hispanic latino layer
 
 ```{r}
+#| column: page-right
+#| code-overflow: wrap
 #| output: false
 acs_hispanic_latino <- st_read("data/ACS_2019_5YR_TRACT_48_TEXAS.gdb",
                       layer = "X03_HISPANIC_OR_LATINO_ORIGIN")
@@ -405,18 +440,28 @@ acs_hispanic_latino_df <- acs_hispanic_latino %>%
   mutate(total_pop_from_hispanic = acs_hispanic_latino$B03002e1,
          pop_hispanic_latino = acs_hispanic_latino$B03002e12,
          pct_hispanic_latino = (pop_hispanic_latino / total_pop_from_hispanic) * 100)
+```
 
+## Children and household relationship
+
+```{r}
+#| column: page-right
+#| code-overflow: wrap
+#| output: false
 acs_children_household <- st_read("data/ACS_2019_5YR_TRACT_48_TEXAS.gdb",
                       layer = "X09_CHILDREN_HOUSEHOLD_RELATIONSHIP")
 acs_children_household_df <- acs_children_household %>%
   select(GEOID) %>%
   mutate(pop_children_under_18 = acs_children_household$B09002e1,
          pct_children_under_18 = (pop_children_under_18 / acs_hispanic_latino$B03002e1) * 100)
+# the children_household_relationship layer did not contain a total populaiton field
 ```
 
 ## Poverty layer
 
 ```{r}
+#| column: page-right
+#| code-overflow: wrap
 #| output: false
 acs_poverty <- st_read("data/ACS_2019_5YR_TRACT_48_TEXAS.gdb",
                        layer = "X17_POVERTY")
@@ -430,6 +475,8 @@ acs_poverty_df <- acs_poverty %>%
 ## Income layer
 
 ```{r}
+#| column: page-right
+#| code-overflow: wrap
 #| output: false
 acs_income <- st_read("data/ACS_2019_5YR_TRACT_48_TEXAS.gdb",
                       layer = "X19_INCOME")
@@ -445,6 +492,8 @@ acs_income_df <- acs_income %>%
 Next, the selected race, age, and income layers are joined. The resulting data set contains the geometry of each census tract and corresponding socioeconomic data.
 
 ```{r}
+#| column: page-right
+#| code-overflow: wrap
 #| warning: false
 census_tract_data <- acs_geoms %>%
   left_join(acs_age_sex_df, by = c("GEOID_Data" = "GEOID")) %>%
@@ -465,6 +514,9 @@ gc()
 ```
 
 ```{r}
+#| column: page-right
+#| code-overflow: wrap
+#| warning: false
 census_tract_data_3083 <- st_transform(census_tract_data, 3083)
 census_tract_data_4326 <- st_transform(census_tract_data_3083, crs = 4326)
 
@@ -474,9 +526,12 @@ census_tract_data_roi_3083 <- st_transform(census_tract_data_roi_4326, crs = 308
 
 # Identify houses without power
 
-Houses that lost electricity were identified based on a spatial intersection of the building data and blackout mask. In this analysis, houses that did not overlap the blackout mask were identified as not losing power (or had power restored by February 16).
+Houses that lost electricity were identified based on a spatial intersection of the building data and the blackout mask. In this analysis, houses that did not overlap the blackout mask were identified as not losing power (or had power restored by February 16th).
 
-```{r warning=FALSE}
+```{r }
+#| column: page-right
+#| code-overflow: wrap
+#| warning: false
 # use spatial subsetting to find all the residential buildings in blackout areas (like we did to crop data to our roi)
 blackout_buildings_3083 <- buildings_3083[blackout_no_highway_3083, op = st_intersects]
 blackout_buildings_4326 <- st_transform(blackout_buildings_3083, crs = 4326)
@@ -487,6 +542,8 @@ no_blackout_buildings_4326 <- st_transform(no_blackout_buildings_3083, crs = 432
 ```
 
 ```{r}
+#| column: page-right
+#| code-overflow: wrap
 # use a spatial join to attach the census tract data to the building data
 blackout_buildings_census_3083 <- st_join(blackout_buildings_3083, census_tract_data_3083) %>%
   mutate(blackout_status = "lost power")
@@ -496,16 +553,22 @@ no_blackout_buildings_census_3083 <- st_join(no_blackout_buildings_3083, census_
 ```
 
 ```{r}
+#| column: page-right
+#| code-overflow: wrap
 number_of_buildings_without_power <- nrow(blackout_buildings_3083)
 ```
 
-Based on this analysis, an estimated `r format(number_of_buildings_without_power, big.mark = ",")` houses were without power on February 16, 2021.
+Based on this analysis, an estimated `r format(number_of_buildings_without_power, big.mark = ",")` houses in the Houston metropolitan area were without power on February 16, 2021.
 
 ```{r}
+#| column: page-right
+#| code-overflow: wrap
 all_building_data_3083 <- rbind(blackout_buildings_census_3083, no_blackout_buildings_census_3083)
 ```
 
 ```{r}
+#| column: page-right
+#| code-overflow: wrap
 #| message: false
 counts_of_lost_power_by_census_tract <- all_building_data_3083 %>%
   st_drop_geometry() %>%
@@ -518,12 +581,16 @@ counts_of_lost_power_by_census_tract <- all_building_data_3083 %>%
 ```
 
 ```{r}
+#| column: page-right
+#| code-overflow: wrap
 census_tract_blackout_data <- left_join(census_tract_data_roi_4326, counts_of_lost_power_by_census_tract, by = "GEOID_Data")
 ```
 
-The map below shows blackout areas layered over census tract populations, with labels identifying the number of houses in each census tract that lost power. The buildings layer was not visualized do size of the dataset and slow load times. See the Maps page at the top of this site to view maps of each socioeconomic variable.
+The map below shows blackout areas layered over census tract populations, with labels identifying the number of houses in each census tract that lost power. The buildings layer was not visualized do the size of the dataset and slow load times. 
 
 ```{r}
+#| column: page-right
+#| code-overflow: wrap
 #| code-fold: true
 #| code-summary: "Code for leaflet map"
 pal_pop <- colorQuantile("Blues", census_tract_blackout_data$total_population, n = 5)
@@ -546,9 +613,11 @@ leaflet(census_tract_blackout_data) %>%
   addPolygons(data = blackout_no_highway_4326, fillColor = ~pal_blackout(DNB_At_Sensor_Radiance_500m), fillOpacity = 0.75, weight = 0)
 ```
 
-The final code chunk of this page exports the data that is used for the Statistical Analysis.
+The final code chunk of this page exports the data that is used for the [Statistical Analysis](https://marierivers.github.io/blackout_analysis/stats.html).
 
 ```{r}
+#| column: page-right
+#| code-overflow: wrap
 # remove spatial info and export to .csv file for use in statistical analysis
 census_tract_blackout_data_df <- st_drop_geometry(census_tract_blackout_data) %>% 
   write_csv("data/census_tract_blackout_data_df.csv")
