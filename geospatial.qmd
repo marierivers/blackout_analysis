@@ -179,7 +179,6 @@ leaflet(roi_leaflet) %>%
   addPolygons(fillColor = "green", fillOpacity = 0.5, weight = 2)
 ```
 
-
 The next step crops the night light imagery data to the region of interest
 
 ```{r}
@@ -189,7 +188,7 @@ dnb_feb16_crop <- st_crop(dnb_feb16, roi_sfc)
 
 # Visualize the data
 
-:::: columns
+::: columns
 ::: {.column width="50%"}
 #### Before the storms
 
@@ -211,7 +210,7 @@ plot(dnb_feb7_crop, main = "DNB at Sensor Radiance Feb 7, 2021", axes = TRUE, ke
 plot(dnb_feb16_crop, main = "DNB at Sensor Radiance Feb 16, 2021", axes = TRUE, key.pos = NULL)
 ```
 :::
-::::
+:::
 
 # Create blackout mask
 
@@ -294,7 +293,7 @@ leaflet(blackout_no_highway_4326) %>%
   addPolygons(fillColor = ~pal_blackout(DNB_At_Sensor_Radiance_500m), fillOpacity = 0.75, weight = 0)
 ```
 
-:::{.callout-note}
+::: callout-note
 While the spatial analysis was completed using the NAD83 / Texas Centric Albers Equal Area (EPSG:3083) projection, the processed data was transposed to WGS 84 / World Geodetic System (EPSF:4326) to be compatible with maps created with the leaflet package.
 :::
 
@@ -328,17 +327,17 @@ buildings_4326 <- st_transform(buildings, crs = 4326)
 
 Socioeconomic data was obtained from the U.S. Census Bureau's 2019 [American Community Survey](https://www.census.gov/programs-surveys/acs). This data is aggregated to the census tract level and variables extracted from the full dataset include:
 
-- Race
-  - white
-  - black
-  - native american
-  - hispanic / latino
-- Age
-  - 65 and older
-  - 18 and younger
-- Income
-  - households below poverty level
-  - median income
+-   Race
+    -   white
+    -   black
+    -   native american
+    -   hispanic / latino
+-   Age
+    -   65 and older
+    -   children under 18
+-   Income
+    -   households below poverty level
+    -   median income
 
 While the race and age data provides the population of each variable for each census tract, these values were normalized by the total population of the census tract. The poverty data was normalized by number of households in each census tract.
 
@@ -486,7 +485,6 @@ acs_income_df <- acs_income %>%
   mutate(median_income = acs_income$B19013e1)
 ```
 
-
 ## Join census track data
 
 Next, the selected race, age, and income layers are joined. The resulting data set contains the geometry of each census tract and corresponding socioeconomic data.
@@ -586,7 +584,7 @@ counts_of_lost_power_by_census_tract <- all_building_data_3083 %>%
 census_tract_blackout_data <- left_join(census_tract_data_roi_4326, counts_of_lost_power_by_census_tract, by = "GEOID_Data")
 ```
 
-The map below shows blackout areas layered over census tract populations, with labels identifying the number of houses in each census tract that lost power. The buildings layer was not visualized due to the size of the dataset and slow load times. 
+The map below shows blackout areas layered over census tract populations, with labels identifying the number of houses in each census tract that lost power. The buildings layer was not visualized due to the size of the dataset and slow load times.
 
 ```{r}
 #| column: page-right

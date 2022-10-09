@@ -32,7 +32,9 @@ blackout_census_data <- read_csv("data/census_tract_blackout_data_df.csv")
 Linear regression was used to model the relationship between percent of houses that lost power and selected data from the U.S. Census Bureau's American Community Survey (ACS). All data are aggregated to the census tract level.
 
 ## Race
+
 ### Percent white
+
 ```{r}
 #| warning: false
 #| code-overflow: wrap
@@ -74,6 +76,7 @@ r_sqrd_white <- round(summary_model_pct_white$r.squared, digits = 3)
 ```
 
 ### Percent black
+
 ```{r}
 #| warning: false
 #| code-overflow: wrap
@@ -115,6 +118,7 @@ r_sqrd_black <- round(summary_model_pct_black$r.squared, digits = 3)
 ```
 
 ### Percent native american
+
 ```{r}
 #| warning: false
 #| code-overflow: wrap
@@ -156,6 +160,7 @@ r_sqrd_am_native <- round(summary_model_pct_am_native$r.squared, digits = 3)
 ```
 
 ### Percent asian
+
 ```{r}
 #| warning: false
 #| code-overflow: wrap
@@ -197,6 +202,7 @@ r_sqrd_asian <- round(summary_model_pct_asian$r.squared, digits = 3)
 ```
 
 ### Percent hispanic / latino
+
 ```{r}
 #| warning: false
 #| code-overflow: wrap
@@ -238,6 +244,7 @@ r_sqrd_hispanic_latino <- round(summary_model_pct_hispanic_latino$r.squared, dig
 ```
 
 ### Race summary plots
+
 ```{r fig.width=10,fig.height=5}
 #| warning: false
 #| code-overflow: wrap
@@ -250,7 +257,9 @@ model_plots_race
 ```
 
 ## Age
+
 ### Percent 65 and older
+
 ```{r}
 #| warning: false
 #| code-overflow: wrap
@@ -292,12 +301,13 @@ r_sqrd_65_and_over <- round(summary_model_pct_65_and_over$r.squared, digits = 3)
 ```
 
 ### Percent children under 18
+
 ```{r}
 #| warning: false
 #| code-overflow: wrap
 #| code-fold: false
 #| column: margin
-#| fig-cap: "Percent of houses that lost power vs. percent population age 18 and younger in census tract"
+#| fig-cap: "Percent of houses that lost power vs. percent population children under 18 in census tract"
 # linear regression model
 model_pct_children_under_18 <- lm(data = blackout_census_data, pct_houses_that_lost_power ~ pct_children_under_18)
 
@@ -333,6 +343,7 @@ r_sqrd_children_under_18 <- round(summary_model_pct_children_under_18$r.squared,
 ```
 
 ### Age summary plots
+
 ```{r fig.width=10,fig.height=3}
 #| warning: false
 #| code-overflow: wrap
@@ -345,7 +356,9 @@ model_plots_age
 ```
 
 ## Income
+
 ### Percent households below poverty
+
 ```{r}
 #| warning: false
 #| code-overflow: wrap
@@ -387,6 +400,7 @@ r_sqrd_households_below_poverty <- round(summary_model_pct_households_below_pove
 ```
 
 ### Median income
+
 ```{r}
 #| warning: false
 #| code-overflow: wrap
@@ -428,6 +442,7 @@ r_sqrd_median_income <- round(summary_model_median_income$r.squared, digits = 3)
 ```
 
 ### Income summary plots
+
 ```{r fig.width=10,fig.height=3}
 #| warning: false
 #| code-overflow: wrap
@@ -443,16 +458,16 @@ model_plots_income
 
 Based on the results of the linear regression models, there is a statistically significant relationship at the 5 % level between percent of houses that lost power and the following variables:
 
-- percent of population white
-- percent of population black
-- percent of population hispanic / latino
-- percent of population age 65 and older
-- percent of population age 18 and younger
-- percent of households below the poverty level
+-   percent of population white
+-   percent of population black
+-   percent of population hispanic / latino
+-   percent of population age 65 and older
+-   percent of population children under age 18
+-   percent of households below the poverty level
 
-Of the significant variables, black; hispanic / latino; age 18 and younger; and poverty were positively correlated with residential power outages. Significant variables that were negatively correlated with residential power outages included white and age 65 and older.
+Of the significant variables, black; hispanic / latino; children under 18; and poverty were positively correlated with residential power outages. Significant variables that were negatively correlated with residential power outages included white and age 65 and older.
 
-For each model with statistically significant results (ie. p-value < 0.05) we reject the null hypothesis that the socioeconomic variable had no influence on percentage of houses without electricity in each census tract at the 5% level. In other words, the slope coefficient is significantly different from zero. Each slope coefficient represents the change in percent of houses that lost power for a one unit increase in the socioeconomic variable. To use the percent white model as an example, for each one unit increase in percent of census population that is white, the percent of census level residential power outages decreases by `r abs(slope_coef_white)`. For the percent white model, the 95% confidence interval for the slope coefficient ranges from `r ci_95_lower_white` to `r ci_95_upper_white`. This means that there is a 95% change that this interval includes the true census level rate of change for percent residential power outages for each one unit change in percent of population that is white.
+For each model with statistically significant results (ie. p-value \< 0.05) we reject the null hypothesis that the socioeconomic variable had no influence on percentage of houses without electricity in each census tract at the 5% level. In other words, the slope coefficient is significantly different from zero. Each slope coefficient represents the change in percent of houses that lost power for a one unit increase in the socioeconomic variable. To use the percent white model as an example, for each one unit increase in percent of census population that is white, the percent of census level residential power outages decreases by `r abs(slope_coef_white)`. For the percent white model, the 95% confidence interval for the slope coefficient ranges from `r ci_95_lower_white` to `r ci_95_upper_white`. This means that there is a 95% change that this interval includes the true census level rate of change for percent residential power outages for each one unit change in percent of population that is white.
 
 ```{r}
 #| include: false
@@ -461,7 +476,7 @@ r_sqrd_min <- min(r_sqrd_white, r_sqrd_black, r_sqrd_am_native, r_sqrd_asian, r_
 r_sqrd_max <- max(r_sqrd_white, r_sqrd_black, r_sqrd_am_native, r_sqrd_asian, r_sqrd_hispanic_latino, r_sqrd_65_and_over, r_sqrd_children_under_18, r_sqrd_households_below_poverty, r_sqrd_median_income) * 100
 ```
 
-The r-squared terms represent the variance in percent of houses without power that can be explained by the socioeconomic variable. The r-squared values ranged from `r r_sqrd_min`% for the asian model to `r r_sqrd_max`% for the age 65 and older model. 
+The r-squared terms represent the variance in percent of houses without power that can be explained by the socioeconomic variable. The r-squared values ranged from `r r_sqrd_min`% for the asian model to `r r_sqrd_max`% for the age 65 and older model.
 
 The results of the linear models are summarized in the table below.
 
@@ -470,7 +485,7 @@ The results of the linear models are summarized in the table below.
 #| code-overflow: wrap
 #| code-fold: true
 #| code-summary: "Code to create summary table"
-model_summary_df <- data.frame(model_name = c("white", "black", "native american", "asian", "hispanic / latino", "65 and older", "18 and younger", "poverty", "median income"),
+model_summary_df <- data.frame(model_name = c("white", "black", "native american", "asian", "hispanic / latino", "65 and older", "children under 18", "poverty", "median income"),
                                slope_coef = c(slope_coef_white, slope_coef_black, slope_coef_am_native, slope_coef_asian, slope_coef_hispanic_latino, slope_coef_pct_65_and_over, slope_coef_children_under_18, slope_coef_households_below_poverty, slope_coef_median_income),
                                std_err = c(std_err_white, std_err_black, std_err_am_native, std_err_asian, std_err_hispanic_latino, std_err_pct_65_and_over, std_err_children_under_18, std_err_households_below_poverty, std_err_median_income),
                                p_value = c(p_value_white, p_value_black, p_value_am_native, p_value_asian, p_value_hispanic_latino, p_value_pct_65_and_over, p_value_children_under_18, p_value_households_below_poverty, p_value_median_income),
@@ -523,6 +538,7 @@ income_model_summary <-plot_summs(model_pct_households_below_poverty, model_medi
            model.names = c("poverty", "median income"))
 income_model_summary
 ```
+
 # Conclusion
 
 While race, age, and income socioeconomic variables account for only a small portion in the overall variance in residential power outages in the greater Houston area during the February 2021 winter storms, this analysis suggests some racial and economic inequality. Electric utility providers should evaluate power system equipment and infrastructure in areas with higher proportions of people of color and poverty then develop plans to maintain and/or replace critical infrastructure in these areas. The results of this analysis could also be used to provide a more equitable response to future natural disasters.
